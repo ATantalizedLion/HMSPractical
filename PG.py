@@ -7,91 +7,88 @@ Created on Fri Nov 29 00:51:25 2019
 import pygame as pg
 import numpy as np
 import matplotlib.pyplot as plt
+from PGFunc import getRandomSignal, ft
+
+#settings
+fps = 60
+duration = 90 #[s]
+screenSize=[640,480]
+targetSize = 46
+refSize = 36
+predSize = 26
+lowestFreq  = 2   /(2*np.pi) #[rad/s]
+highestFreq = 6   /(2*np.pi) #[rad/s]
+
+#useful variables
+xc = screenSize[0]/2 #centre X
+yc = screenSize[1]/2 #centre Y
+stepSize = 1/fps
 
 
+highestMag = 0.95 * screenSize[0]/2
+x,t,a,b,ff,scaleFact = getRandomSignal(lowestFreq,highestFreq,duration,highestMag,stepSize)
 
+x0 = ft(a,b,0,ff)
 
+pg.init()
 
+#colors
+green = pg.Color(0,200,0)    
+white = pg.Color(255,255,255)
+yellow = pg.Color(255,255,0)
 
+#initialize stuff
+screen = pg.display.set_mode(screenSize)
+clock = pg.time.Clock()
+font = pg.font.SysFont("comicsansms",30)
 
+ref = pg.Rect((xc-refSize/2,yc-refSize/2),(refSize,refSize))
+pred = pg.Rect((xc-predSize/2,yc-predSize/2),(predSize,predSize))
 
-lowestFreq =1
-highestFreq =10
-duration = 120 #[s]
-stepSize = 0.1
-highestMag = 0.9
-fundamentalFrequency = 2*np.pi/duration #rad/s
+tc = 0
 
-#setup matrices
-a = np.zeros((duration))
-t = np.arange(duration,step=stepSize)
+#plt.plot(t,x)
+#plt.show()
 
-#Get random coefficient for set frequencies
-a[lowestFreq:highestFreq] = np.random
-b[lowestFreq:highestFreq] = 
-c[lowestFreq:highestFreq] = 
+running = True
+while running: 
+    #Check for quit
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            running = False
+    
+    #Reset screen to black
+    screen.fill((0,0,0))
+        
+    #Progress time
+    dt = clock.tick(fps) #in ms
+    realFPS = clock.get_fps()
+    fpsRend = font.render(str(int(realFPS)), True, white)
+    screen.blit(fpsRend,(50,50))
+    
+    tc+=(dt/100)
+    
+    xt=ft(a,b,tc,ff)*scaleFact
+    
+    target = pg.Rect((xt+xc-targetSize/2,yc-targetSize/2),(targetSize,targetSize))        
 
+    #Draw target
+    pg.draw.rect(screen,green,target,1)
+    #Draw ref    
+    pg.draw.rect(screen,white,ref,1)
+    #Draw pred
+#    pg.draw.rect(screen,yellow,pred,1)
+    
+#    fpscount = font.render(str(int(pg.time.Clock().get_fps())))
 
-#    numpy.fft.ifft(a, n=None, axis=-1, norm=None)
-#    a[0] should contain the zero frequency term,
-#    a[1:n//2] should contain the positive-frequency terms,
-#    a[n//2 + 1:] should contain the negative-frequency terms, in increasing order starting from the most negative frequency.
-#    n = Length of the transformed axis of the output.
-s = np.fft.ifft(a,(len(t))) #get signal
-s = s.real #dispose of imag part
-scaleFact = max(abs(s.real)) #scale magnitude to 1
-s = highestMag * s / scaleFact #scale magnitude to give magnitude
+    pg.display.flip()
+
+#close stuff
+pg.display.quit()
+pg.quit()
     
 
+            
 
 
 
-
-
-
-
-
-#def getRandomSignal(lowestFreq, highestFreq, ,duration, stepSize=0.1, highestMag=1):
-##    lowestFreq=1
-##    highestFreq=10
-##    duration = 120 #[s]
-##    stepSize = 0.1
-##    highestMag = 0.9
-#    #setup matrices
-#    a = np.zeros((duration))
-#    t = np.arange(duration,step=stepSize)
-#    
-#    #Get random coefficient for set frequencies
-#    a[lowestFreq:highestFreq] = np.random
-#    b[lowestFreq:highestFreq] = 
-#    c[lowestFreq:highestFreq] = 
-#    
-#    
-#    #    numpy.fft.ifft(a, n=None, axis=-1, norm=None)
-#    #    a[0] should contain the zero frequency term,
-#    #    a[1:n//2] should contain the positive-frequency terms,
-#    #    a[n//2 + 1:] should contain the negative-frequency terms, in increasing order starting from the most negative frequency.
-#    #    n = Length of the transformed axis of the output.
-#    s = np.fft.ifft(a,(len(t))) #get signal
-#    s = s.real #dispose of imag part
-##    scaleFact = max(abs(s.real)) #scale magnitude to 1
-##    s = highestMag * s / scaleFact #scale magnitude to give magnitude
-#    
-#    return s,t
-#
-##settings
-#lowestFreq=1
-#highestFreq=10
-#duration = 120 #[s]
-#stepSize = 0.1
-#highestMag = 0.9
-#
-#s,t = getRandomSignal(lowestFreq, highestFreq, duration, stepSize, highestMag)
-#
-##plt.plot(t,s)
-##plt.show()
-#
-#sp = np.fft.rfft(s)
-#freq = np.fft.rfftfreq(s.shape[-1])
-#plt.plot(freq, sp.real, freq, sp.imag)
-#plt.show()
