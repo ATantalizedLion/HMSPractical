@@ -7,7 +7,7 @@ Created on Fri Nov 29 00:51:25 2019
 import pygame as pg
 import numpy as np
 import matplotlib.pyplot as plt
-from PGFunc import getRandomSignal, ft
+from PGFunc import RandomSignal
 
 #settings
 fps = 60
@@ -16,8 +16,10 @@ screenSize=[640,480]
 targetSize = 46
 refSize = 36
 predSize = 26
-lowestFreq  = 2   /(2*np.pi) #[rad/s]
-highestFreq = 6   /(2*np.pi) #[rad/s]
+lowestFreq  = 2   #[rad/s]
+highestFreq = 6  #[rad/s]
+
+freqList = [2,3,4] #rad/s
 
 #useful variables
 xc = screenSize[0]/2 #centre X
@@ -25,10 +27,12 @@ yc = screenSize[1]/2 #centre Y
 stepSize = 1/fps
 
 
-highestMag = 0.95 * screenSize[0]/2
-x,t,a,b,ff,scaleFact = getRandomSignal(lowestFreq,highestFreq,duration,highestMag,stepSize)
+highestMag = 0.8 * screenSize[0]/2
 
-x0 = ft(a,b,0,ff)
+#forcingFunction = RandomSignal(lowestFreq,highestFreq,durations)
+forcingFunction = RandomSignal(duration,freqList=freqList,highestMag=highestMag)
+
+x = forcingFunction.x
 
 pg.init()
 
@@ -68,7 +72,7 @@ while running:
     
     tc+=(dt/100)
     
-    xt=ft(a,b,tc,ff)*scaleFact
+    xt=forcingFunction.getAtTime(tc,scale=1)
     
     target = pg.Rect((xt+xc-targetSize/2,yc-targetSize/2),(targetSize,targetSize))        
 
