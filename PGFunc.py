@@ -7,8 +7,55 @@ Created on Sat Nov 30 02:18:55 2019
 import numpy as np
 import matplotlib.pyplot as plt
 
+class ForcingFunction():          
+
+        def genSignal(self):
+            self.t = np.arange(self.duration,step=self.stepSize)
+            self.x = np.zeros(self.duration*int(1/self.stepSize))
+            
+            for i in range(len(self.t)):
+                for j in range(len(self.a)):
+                    self.x[i] += self.a[j]*np.sin(self.klist[j]*self.fundamentalFrequency*self.t[i]+self.ap[j])
+            
+            if self.scaleToMag == 0:
+                self.scaleFactor = 0
+            else:
+                self.scaleFactor = self.scaleToMag * max(abs(self.x)) 
+                self.x = self.x * self.scaleFactor
+            return self.x,self.t
+            
+        def getAtTime(self,t):
+            x = 0
+            for i in range(len(self.klist)):
+                    x += self.a[i]*np.sin(self.klist[i]*self.fundamentalFrequency*t+self.ap[i])
+            return x * self.scaleFactor
+            
+        def plot(self):
+            plt.plot(self.t,self.x)
+            plt.show()
+            
+
+        def __init__(self, stepSize=0.01, randomizePhase = 0, scaleToMag=0):
+            #signal properties
+            self.stepSize = stepSize
+            self.scaleToMag = scaleToMag
+            
+            #check if default function needs to be generated
+            self.a = [0.371724, 0.303086, 0.155353, 0.084163, 0.034739, 0.024919, 0.014591, 0.007975, 0.002510, 0.000940]                
+            self.klist = [2, 3, 5, 7, 11, 13, 17, 23, 41, 67]
+            if randomizePhase == 0:
+                self.ap = [2.902110, 1.514913, 1.770639, 2.751896, 3.839372, 3.345018, 1.158910, 5.828269, 1.905998, 1.160419]
+            else:
+                self.ap = np.random.uniform(0,2*np.pi,len(self.klist))
+            self.fundamentalFrequency = 0.30679599999999996
+
+            self.duration = int(np.pi*2/self.fundamentalFrequency)
+
+            self.genSignal()
+
+
+
 class RandomSignal():
-        
         def generateRandomCoeff(self):
             #w = w0 * k
             maxk = int(self.highestFreq/self.fundamentalFrequency)
@@ -20,7 +67,7 @@ class RandomSignal():
         
             #Get random coefficient for set frequencies
             self.a[mink:maxk] = np.random.uniform(-1,1,maxk-mink)
-            self.ap[mink:maxk] = np.random.uniform(-3,3,maxk-mink)
+            self.ap[mink:maxk] = np.random.uniform(0,2*np.pi,maxk-mink)
 
         def genFromList(self):
             #f = f0 * k
