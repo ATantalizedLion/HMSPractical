@@ -38,7 +38,13 @@ display  = 0 #0 - Compensatory
              #1 - Pursuit
              #2 - Shows signal
 
-predictor = 0            
+predictor = 1   #0 no predictor
+                #1 single predictor
+                #2 secondary predictor
+
+predTime = 0.5 #seconds
+
+controls = 0 #0Keyboard
 
 freqList = [2,3,4,5,6,7] #rad/s
 lowMagFreqList = [8,9,10] #rad/s
@@ -67,7 +73,6 @@ clock = pg.time.Clock()
 font = pg.font.SysFont("arial",30)
 userInputX = 0
 
-
 tc = 0 #keep track of current time
 ts = 0 #time since start running signal
 xf = forcingFunction.getAtTime(0) * screenSize[0]/2 #starting point of forcing function
@@ -76,14 +81,17 @@ xi = 0 #pos start at 0
 vi = 0 #velocity start at 0
 ai = 0 #acceleration start at 0
 a2i = 0 #change in accleration 
+userInputH = 0 #Horizontal Input gain
 
-gain = 10
+xGain = 10*screenSize[0]/640 #scale to screen size, ten is there to increase sensitivity
+yGain = 10*screenSize[1]/480 #scale to screen size, ten is there to increase sensitivity
 
-countDown = 5
+countDown = 5 #count 5 sec before start
 
-userInputH = 0
+inpLim = 15 # Max in or output magnitude
 
-pg.key.set_repeat(100)
+
+pg.key.set_repeat(50)
 
 xiHist=[]
 xrHist=[]
@@ -114,14 +122,22 @@ while running:
         userInputX += userInputH
     if dynamics > 0:
         userInputX += userInputH
-        if userInputX < -15:
-            userInputX = -15
-        if userInputX > 15:
-            userInputX = 15
+        if userInputX < -inpLim:
+            userInputX = -inpLim
+        if userInputX > inpLim:
+            userInputX = inpLim
 
     inpRend = font.render(str(round(userInputX,2)), True, pg.Color('white'))
     screen.blit(inpRend,(xc,screenSize[1]-50))
+    
+#    draw input bar
+    barLength = screenSize[0]/4
+    barHeight = 22
+    barframe = pg.Rect((xc-barLength/2,screenSize[1]-50-barHeight/2),(barLength,barHeight))
+
+    pg.draw.rect(screen,pg.Color('white'),barframe,1)
             
+    
     #Progress time and draw fps counter
     dTicks = clock.tick(fps) #in ms
     dt = dTicks/1000
@@ -129,58 +145,69 @@ while running:
     realFPS = clock.get_fps()
     fpsRend = font.render(str(int(realFPS)), True, pg.Color('white'))
     screen.blit(fpsRend,(50,50))
-    
+     
     if countDown > 0:
         countingDown = font.render(str(round(countDown)), True, pg.Color('white'))
         screen.blit(countingDown,(xc,yc))
         countDown -= dt
-    else:
+        userInputX = 0
+        userInputY = 0
+        
+    else: #countdown over, start program
         ts+=dt
         #get forcing function value
-        xf=forcingFunction.getAtTime(ts) * screenSize[0]/2
-
+    xf=forcingFunction.getAtTime(ts) * screenSize[0]/2
+    xf=0
     if dynamics == 0: #pos
-        xi = userInputX*gain
+        xi = userInputX*xGain
         xiT = font.render("Xi: "+str(round(xi)), True, pg.Color('white'))
         screen.blit(xiT,(50,screenSize[1]-50))
+
     elif dynamics == 1:
-        vi = userInputX*gain
+        vi = userInputX*xGain
         xi += vi * dt
         xiT = font.render("Xi: "+str(round(xi)), True, pg.Color('white'))
         screen.blit(xiT,(50,screenSize[1]-50))
+        if predictor == 1:
+            xps = vi * predTime 
+            
     elif dynamics == 2:
-        ai = userInputX*gain
+        ai = userInputX*xGain
         vi += ai * dt
         xi += vi * dt
         xiT = font.render("Xi: "+str(round(xi)), True, pg.Color('white'))
         screen.blit(xiT,(50,screenSize[1]-50))
+        if predictor == 1:
+            xps = 0.5 * ai * predTime**2 + vi * predTime
+            
     elif dynamics == 3:
-        a2i = userInputX*gain
-        ai += ai * dt
+        a2i = userInputX*xGain
+        ai += a2i * dt
         vi += ai * dt
         xi += vi * dt
         xiT = font.render("Xi: "+str(round(xi)), True, pg.Color('white'))
         screen.blit(xiT,(50,screenSize[1]-50))
-    
+        if predictor == 1:
+            xps = (1/6) * a2i **3 + 0.5 * ai * predTime**2+ vi * predTime 
+        
     if countDown < 0:
         tcHist.append(tc)
         xiHist.append(-xi)
         xrHist.append(xf)
-    
+        
     if display == 0: #compensatory
         xt = 0
         xr = xf
-        xp = 0
+        xp = xps
         
     elif display == 1: #pursuit
         xt = xf
         xr = 0
-        xp = 0
+        xp = xps
 
     #replace target object with object at new position    
     ref = pg.Rect((xi + xr + xc-refSize/2,yc-refSize/2),(refSize,refSize))
     target = pg.Rect((  xt + xc-targetSize/2,yc-targetSize/2),(targetSize,targetSize))
-#    pred = pg.Rect((xp+xc-predSize/2,yc-predSize/2),(predSize,predSize))
 #    pred2 = pg.Rect((xp+xc-predSize/2,yc-predSize/2),(predSize,predSize))
 
     #Draw target
@@ -191,7 +218,7 @@ while running:
 
     #Draw pred
     if predictor > 0:
-        xp = 1
+        pred = pg.Rect((xi+xp+xc-predSize/2,yc-predSize/2),(predSize,predSize))
         pg.draw.rect(screen,pg.Color('yellow'),pred,1)
     
     pg.display.flip()
@@ -199,13 +226,13 @@ while running:
     if tc > duration:
         running = False
 
+pg.display.quit()
+pg.quit()
+
 plt.plot(tcHist,xiHist)
 plt.plot(tcHist,xrHist)
 plt.show()
 
-#close stuff
-pg.display.quit()
-pg.quit()
     
 
             
